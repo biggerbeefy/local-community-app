@@ -1,6 +1,9 @@
-<h1>Create Event</h1>
+{% extends 'base.html' %}
+{% block content %}
+<h1>{% if editing %}Edit Event{% else %}Create Event{% endif %}</h1>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Create Event</button>
+    <button type="submit">{% if editing %}Save Changes{% else %}Create Event{% endif %}</button>
 </form>
+{% endblock %}

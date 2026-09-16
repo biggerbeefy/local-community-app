@@ -1,3 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+
 <h1>{{ event.title }}</h1>
 <p>{{ event.get_category_display }} — {{ event.city }}, {{ event.state }}</p>
 <p>{{ event.start_time }}</p>
@@ -16,6 +19,11 @@
 
 <p>Organized by {{ event.organizer.username }}</p>
 
+{% if user == event.organizer %}
+    <a href="{% url 'event_edit' event.id %}">Edit Event</a> |
+    <a href="{% url 'event_delete' event.id %}">Delete Event</a>
+{% endif %}
+
 {% if user.is_authenticated %}
     <form method="post" action="{% url 'rsvp_toggle' event.id %}">
         {% csrf_token %}
@@ -28,4 +36,5 @@
 {% else %}
     <p><a href="{% url 'login' %}?next={% url 'event_detail' event.id %}">Log in to RSVP</a></p>
 {% endif %}
+{% endblock %}
 

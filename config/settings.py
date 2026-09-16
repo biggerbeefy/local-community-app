@@ -58,7 +58,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -132,4 +132,4 @@ MAILERS = {
 AUTH_USER_MODEL = 'users.CustomUser'
 
 LOGIN_URL = '/users/login/'
-LOGIN_REDIRECT_URL = '/event_list/'
+LOGIN_REDIRECT_URL = '/events/'
