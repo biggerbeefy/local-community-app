@@ -1,0 +1,31 @@
+<h1>{{ event.title }}</h1>
+<p>{{ event.get_category_display }} — {{ event.city }}, {{ event.state }}</p>
+<p>{{ event.start_time }}</p>
+
+{% if event.general_area %}
+    <p><strong>General area:</strong> {{ event.general_area }}</p>
+{% endif %}
+
+{% if can_see_address %}
+    <p><strong>Exact address:</strong> {{ event.exact_address }}</p>
+{% else %}
+    <p><em>Exact address visible after you RSVP.</em></p>
+{% endif %}
+
+<p>{{ event.description }}</p>
+
+<p>Organized by {{ event.organizer.username }}</p>
+
+{% if user.is_authenticated %}
+    <form method="post" action="{% url 'rsvp_toggle' event.id %}">
+        {% csrf_token %}
+        {% if user_rsvp %}
+            <button type="submit">Cancel RSVP</button>
+        {% else %}
+            <button type="submit">RSVP - I'm Going</button>
+        {% endif %}
+    </form>
+{% else %}
+    <p><a href="{% url 'login' %}?next={% url 'event_detail' event.id %}">Log in to RSVP</a></p>
+{% endif %}
+

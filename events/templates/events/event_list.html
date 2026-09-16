@@ -1,0 +1,10 @@
+<h1>Upcoming Events</h1>
+<a href="{% url 'event_create' %}">+ Create Event</a>
+<ul>
+    {% for event in events %}
+        <li>
+            <strong><a href="{% url 'event_detail' event.id %}">{{ event.title }}</a></strong> — {{ event.get_category_display }}<br>
+            {{ event.city }}, {{ event.state }} — {{ event.start_time }}
+        </li>
+    {% endfor %}
+</ul>
