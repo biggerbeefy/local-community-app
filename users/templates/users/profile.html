@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ user.username }}'s Profile</h1>
+
+<h2>Events You're Organizing</h2>
+{% if organized_events %}
+    <ul>
+        {% for event in organized_events %}
+            <li><a href="{% url 'event_detail' event.id %}">{{ event.title }}</a> — {{ event.start_time }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>You haven't created any events yet.</p>
+{% endif %}
+
+<h2>Events You're Attending</h2>
+{% if rsvps %}
+    <ul>
+        {% for rsvp in rsvps %}
+            <li><a href="{% url 'event_detail' rsvp.event.id %}">{{ rsvp.event.title }}</a> — {{ rsvp.event.start_time }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>You haven't RSVP'd to any events yet.</p>
+{% endif %}
+{% endblock %}
