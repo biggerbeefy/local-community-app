@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Groups</h1>
+<a href="{% url 'group_create' %}">+ Create Group</a>
+
+<form method="get">
+    <input type="text" name="search" placeholder="Search groups" value="{{ search_query|default:'' }}">
+    <button type="submit">Search</button>
+</form>
+
+<ul>
+    {% for entry in group_data %}
+        <li>
+            <strong><a href="{% url 'group_detail' entry.group.id %}">{{ entry.group.name }}</a></strong>
+            {% if entry.membership_status == 'approved' %}
+                — <em>Member</em>
+            {% elif entry.membership_status == 'pending' %}
+                — <em>Request pending</em>
+            {% elif not entry.group.is_public %}
+                — <em>Request to join</em>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

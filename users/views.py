@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
-from .forms import SignUpForm
+from django.contrib.auth.decorators import login_required
+from events.models import Event, RSVP
+from .forms import SignUpForm, ProfileEditForm
+
 
 def signup(request):
     if request.method == 'POST':
@@ -13,8 +16,6 @@ def signup(request):
         form = SignUpForm()
     return render(request, 'users/signup.html', {'form': form})
 
-from django.contrib.auth.decorators import login_required
-from events.models import Event, RSVP
 
 @login_required
 def profile(request):
@@ -25,5 +26,18 @@ def profile(request):
         'organized_events': organized_events,
         'rsvps': rsvps,
     })
+
+
+@login_required
+def profile_edit(request):
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = ProfileEditForm(instance=request.user)
+    return render(request, 'users/profile_edit.html', {'form': form})
+
 
 # Create your views here.

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ group.name }}</h1>
+<p>{{ group.description }}</p>
+<p>{{ members.count }} member{{ members.count|pluralize }}</p>
+
+{% if user.is_authenticated %}
+    {% if membership %}
+        {% if membership.status == 'pending' %}
+            <p><em>Your request to join is pending approval.</em></p>
+        {% else %}
+            <p>You're a {{ membership.role }} of this group.</p>
+            <form method="post" action="{% url 'group_leave' group.id %}">
+                {% csrf_token %}
+                <button type="submit">Leave Group</button>
+            </form>
+        {% endif %}
+    {% else %}
+        <form method="post" action="{% url 'group_join' group.id %}">
+            {% csrf_token %}
+            <button type="submit">{% if group.is_public %}Join Group{% else %}Request to Join{% endif %}</button>
+        </form>
+    {% endif %}
+{% else %}
+    <p><a href="{% url 'login' %}">Log in to join</a></p>
+{% endif %}
+
+{% if pending_requests %}
+    <h2>Pending Requests</h2>
+    <ul>
+        {% for req in pending_requests %}
+            <li>
+                {{ req.user.username }}
+                <form method="post" action="{% url 'approve_member' group.id req.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit">Approve</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endblock %}

@@ -6,20 +6,34 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <button id="sidebar-toggle" aria-label="Open menu">☰</button>
+    <header id="topbar">
+        <div id="topbar-left">
+            <button id="sidebar-toggle" aria-label="Open menu">☰</button>
+            <a href="{% url 'event_list' %}" id="logo-link">Grassroot</a>
+        </div>
+        {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}" id="topbar-profile-pic">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Profile">
+                {% else %}
+                    <div id="topbar-profile-placeholder">{{ user.username|first|upper }}</div>
+                {% endif %}
+            </a>
+        {% endif %}
+    </header>
 
     <div id="sidebar-overlay"></div>
 
     <aside id="sidebar">
-        <h2><a href="{% url 'event_list' %}">Grassroot</a></h2>
         <nav>
+            <a href="{% url 'group_list' %}">Groups</a>
             <a href="{% url 'event_list' %}">Events</a>
             {% if user.is_authenticated %}
                 <a href="{% url 'event_create' %}">Create Event</a>
                 <a href="{% url 'profile' %}">Profile</a>
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
-                    <button type="submit">Logout</button>
+                    <button type="submit">Log out</button>
                 </form>
             {% else %}
                 <a href="{% url 'login' %}">Log in</a>
