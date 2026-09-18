@@ -41,6 +41,8 @@ def format_count(n):
         return f"{int(value)}{suffix}"
     return f"{value:.1f}{suffix}"
 
+from posts.models import Post
+
 def group_detail(request, group_id):
     group = get_object_or_404(Group, id=group_id)
     membership = None
@@ -57,6 +59,10 @@ def group_detail(request, group_id):
     can_view_members = group.member_list_public or is_member
     members = approved_members if can_view_members else GroupMembership.objects.none()
 
+    can_view_posts = group.is_public or group.posts_visible_to_non_members or is_member
+    posts = group.posts.all() if can_view_posts else Post.objects.none()
+    can_interact_posts = group.is_public or is_member
+
     pending_requests = group.memberships.filter(status=GroupMembership.Status.PENDING) if is_admin else None
     banned_members = group.memberships.filter(status=GroupMembership.Status.BANNED) if is_admin else None
 
@@ -67,6 +73,9 @@ def group_detail(request, group_id):
         'member_count': member_count,
         'member_count_display': member_count_display,
         'can_view_members': can_view_members,
+        'posts': posts,
+        'can_view_posts': can_view_posts,
+        'can_interact_posts': can_interact_posts,
         'pending_requests': pending_requests,
         'banned_members': banned_members,
         'is_admin': is_admin,

@@ -7,5 +7,50 @@
 {% if post.link_url %}<p><a href="{{ post.link_url }}">{{ post.link_url }}</a></p>{% endif %}
 {% if post.image %}<img src="{{ post.image.url }}" style="max-width: 100%;">{% endif %}
 
+{% if can_interact %}
+    <form method="post" action="{% url 'toggle_like' 'post' post.id %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">{% if user_has_liked %}Unlike{% else %}Like{% endif %} ({{ like_count }})</button>
+    </form>
+{% else %}
+    <p>{{ like_count }} like{{ like_count|pluralize }}</p>
+{% endif %}
+
+<h2>Comments</h2>
+
+{% if can_interact %}
+    <form method="post" action="{% url 'comment_create' post.id %}">
+        {% csrf_token %}
+        {{ comment_form.as_p }}
+        <button type="submit">Comment</button>
+    </form>
+{% endif %}
+
+<ul>
+    {% for comment in comments %}
+        <li>
+            <strong>{{ comment.author.username }}</strong>: {{ comment.body }}
+            <br><small>{{ comment.created_at }}</small>
+
+            {% if can_interact %}
+                <form method="post" action="{% url 'comment_create' post.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                    {{ comment_form.body }}
+                    <button type="submit">Reply</button>
+                </form>
+            {% endif %}
+
+            {% if comment.replies.exists %}
+                <ul>
+                    {% for reply in comment.replies.all %}
+                        <li><strong>{{ reply.author.username }}</strong>: {{ reply.body }} <br><small>{{ reply.created_at }}</small></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+
 <a href="{% url 'post_list' group.id %}">Back to wall</a>
 {% endblock %}

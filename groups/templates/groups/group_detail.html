@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% block content_class %}content wide-content{% endblock %}
 {% block content %}
 
 <div class="group-banner">
@@ -43,11 +44,93 @@
 </div>
 
 <p>{{ group.description }}</p>
-<a href="{% url 'post_list' group.id %}">View Wall</a>
+{% if is_admin %}<a href="{% url 'group_edit' group.id %}">Edit Group</a>{% endif %}
 
-{% if is_admin %}
-    <a href="{% url 'group_edit' group.id %}">Edit Group</a>
-{% endif %}
+<div class="group-layout">
+    <div class="group-main">
+        <h2>Wall</h2>
+        {% if can_interact_posts %}
+            <a href="{% url 'post_create' group.id %}">+ New Post</a>
+        {% endif %}
+
+        {% if can_view_posts %}
+            <ul>
+                {% for post in posts %}
+                    <li>
+                        <strong><a href="{% url 'post_detail' post.id %}">{{ post.title|default:"Untitled post" }}</a></strong>
+                        <br>by {{ post.author.username }} — {{ post.created_at }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p><em>This group's wall is private to members.</em></p>
+        {% endif %}
+    </div>
+
+    <div class="group-sidebar">
+        <h2>Upcoming Events</h2>
+        {% if group.events.exists %}
+            <ul>
+                {% for event in group.events.all %}
+                    <li><a href="{% url 'event_detail' event.id %}">{{ event.title }}</a> — {{ event.start_time }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No events yet.</p>
+        {% endif %}
+
+        {% if is_admin %}
+            <h2>Members</h2>
+            <ul>
+                {% for m in members %}
+                    <li>
+                        {{ m.user.username }} ({{ m.role }})
+                        {% if m.role != 'admin' %}
+                            <form method="post" action="{% url 'promote_admin' group.id m.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Make Admin</button>
+                            </form>
+                            <form method="post" action="{% url 'ban_member' group.id m.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Ban</button>
+                            </form>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            {% if pending_requests %}
+                <h3>Pending Requests</h3>
+                <ul>
+                    {% for req in pending_requests %}
+                        <li>
+                            {{ req.user.username }}
+                            <form method="post" action="{% url 'approve_member' group.id req.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Approve</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if banned_members %}
+                <h3>Banned Members</h3>
+                <ul>
+                    {% for b in banned_members %}
+                        <li>
+                            {{ b.user.username }}
+                            <form method="post" action="{% url 'unban_member' group.id b.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Unban</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
 
 <div id="member-popup" class="member-popup hidden">
     <div class="member-popup-content">
@@ -62,68 +145,6 @@
     </div>
 </div>
 
-{% if is_admin %}
-    <h2>Members</h2>
-    <ul>
-        {% for m in members %}
-            <li>
-                {{ m.user.username }} ({{ m.role }})
-                {% if m.role != 'admin' %}
-                    <form method="post" action="{% url 'promote_admin' group.id m.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit">Make Admin</button>
-                    </form>
-                    <form method="post" action="{% url 'ban_member' group.id m.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit">Ban</button>
-                    </form>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-
-    {% if pending_requests %}
-        <h2>Pending Requests</h2>
-        <ul>
-            {% for req in pending_requests %}
-                <li>
-                    {{ req.user.username }}
-                    <form method="post" action="{% url 'approve_member' group.id req.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit">Approve</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
-    {% if banned_members %}
-        <h2>Banned Members</h2>
-        <ul>
-            {% for b in banned_members %}
-                <li>
-                    {{ b.user.username }}
-                    <form method="post" action="{% url 'unban_member' group.id b.id %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit">Unban</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-{% endif %}
-
-<h2>Upcoming Events</h2>
-{% if group.events.exists %}
-    <ul>
-        {% for event in group.events.all %}
-            <li><a href="{% url 'event_detail' event.id %}">{{ event.title }}</a> — {{ event.start_time }}</li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No events yet.</p>
-{% endif %}
-
 <script>
     const btn = document.getElementById('member-count-btn');
     const popup = document.getElementById('member-popup');
@@ -131,11 +152,12 @@
     const searchInput = document.getElementById('member-search');
     const items = document.querySelectorAll('.member-popup-item');
 
-    if (btn) {
-        btn.addEventListener('click', () => popup.classList.remove('hidden'));
-    }
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => popup.classList.add('hidden'));
+    if (btn) { btn.addEventListener('click', () => popup.classList.remove('hidden')); }
+    if (closeBtn) { closeBtn.addEventListener('click', () => popup.classList.add('hidden')); }
+    if (popup) {
+        popup.addEventListener('click', (event) => {
+            if (event.target === popup) { popup.classList.add('hidden'); }
+        });
     }
     if (searchInput) {
         searchInput.addEventListener('input', () => {
