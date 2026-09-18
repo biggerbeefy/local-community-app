@@ -49,14 +49,14 @@ def rsvp_toggle(request, event_id):
 @login_required
 def event_create(request):
     if request.method == 'POST':
-        form = EventForm(request.POST)
+        form = EventForm(request.POST, user=request.user)
         if form.is_valid():
             event = form.save(commit=False)
             event.organizer = request.user
             event.save()
             return redirect('event_detail', event_id=event.id)
     else:
-        form = EventForm()
+        form = EventForm(user=request.user)
 
     return render(request, 'events/event_form.html', {'form': form})
 from django.contrib.auth.decorators import login_required
@@ -71,12 +71,12 @@ def event_edit(request, event_id):
         return HttpResponseForbidden("You don't have permission to edit this event.")
 
     if request.method == 'POST':
-        form = EventForm(request.POST, instance=event)
+        form = EventForm(request.POST, instance=event, user=request.user)
         if form.is_valid():
             form.save()
             return redirect('event_detail', event_id=event.id)
     else:
-        form = EventForm(instance=event)
+        form = EventForm(instance=event, user=request.user)
 
     return render(request, 'events/event_form.html', {'form': form, 'editing': True})
 

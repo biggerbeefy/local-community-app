@@ -36,6 +36,14 @@ class Event(models.Model):
         related_name='organized_events'
     )
 
+    group = models.ForeignKey(
+        'groups.Group',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='events'
+    )
+
     # Location - general (always visible publicly)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=2)

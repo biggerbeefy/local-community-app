@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Create Group</h1>
-<form method="post">
+<h1>{% if editing %}Edit Group{% else %}Create Group{% endif %}</h1>
+<form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Create Group</button>
+    <button type="submit">{% if editing %}Save Changes{% else %}Create Group{% endif %}</button>
 </form>
 {% endblock %}

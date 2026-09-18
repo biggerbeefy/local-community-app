@@ -4,7 +4,9 @@
 <h1>{{ event.title }}</h1>
 <p>{{ event.get_category_display }} — {{ event.city }}, {{ event.state }}</p>
 <p>{{ event.start_time }}</p>
-
+{% if event.group %}
+    <p>Hosted by <a href="{% url 'group_detail' event.group.id %}">{{ event.group.name }}</a></p>
+{% endif %}
 {% if event.general_area %}
     <p><strong>General area:</strong> {{ event.general_area }}</p>
 {% endif %}

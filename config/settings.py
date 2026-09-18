@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'events',
     'users',
     'groups',
+    'posts',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

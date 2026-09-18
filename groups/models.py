@@ -11,6 +11,17 @@ class Group(models.Model):
 
     is_public = models.BooleanField(default=True, help_text="If False, joining requires admin approval")
     is_discoverable = models.BooleanField(default=True, help_text="If False, group won't appear in search/browse")
+    posts_visible_to_non_members = models.BooleanField(
+        default=True,
+        help_text="If True, anyone can view posts even without joining. Only applies to private groups (public groups' posts are always visible)."
+    )
+    member_list_public = models.BooleanField(
+        default=False,
+        help_text="If True, non-members can view the group's member list."
+    )
+
+    profile_picture = models.ImageField(upload_to="groups/", blank=True, null=True)
+    banner_image = models.ImageField(upload_to="groups/banners/", blank=True, null=True)
 
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -36,6 +47,7 @@ class GroupMembership(models.Model):
     class Status(models.TextChoices):
         APPROVED = 'approved', 'Approved'
         PENDING = 'pending', 'Pending Approval'
+        BANNED = 'banned', 'Banned'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -55,3 +67,5 @@ class GroupMembership(models.Model):
     class Meta:
         unique_together = ('group', 'user')
         ordering = ['-joined_at']
+
+        

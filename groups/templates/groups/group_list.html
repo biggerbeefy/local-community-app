@@ -11,6 +11,9 @@
 <ul>
     {% for entry in group_data %}
         <li>
+            {% if entry.group.profile_picture %}
+                <img src="{{ entry.group.profile_picture.url }}" alt="{{ entry.group.name }}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover; vertical-align: middle;">
+            {% endif %}
             <strong><a href="{% url 'group_detail' entry.group.id %}">{{ entry.group.name }}</a></strong>
             {% if entry.membership_status == 'approved' %}
                 — <em>Member</em>

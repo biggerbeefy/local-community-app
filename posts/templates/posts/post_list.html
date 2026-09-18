@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ group.name }} — Wall</h1>
+
+{% if can_interact %}
+    <a href="{% url 'post_create' group.id %}">+ New Post</a>
+{% endif %}
+
+<ul>
+    {% for post in posts %}
+        <li>
+            <strong><a href="{% url 'post_detail' post.id %}">{{ post.title|default:"Untitled post" }}</a></strong>
+            <br>by {{ post.author.username }} — {{ post.created_at }}
+        </li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'group_detail' group.id %}">Back to group</a>
+{% endblock %}

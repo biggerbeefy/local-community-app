@@ -1,9 +1,40 @@
 {% extends 'base.html' %}
 {% block content %}
 <h1>{% if editing %}Edit Event{% else %}Create Event{% endif %}</h1>
-<form method="post">
+<form method="post" id="event-form">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">{% if editing %}Save Changes{% else %}Create Event{% endif %}</button>
 </form>
+
+<script>
+    const categoryField = document.getElementById('id_category');
+    const visibilityField = document.getElementById('id_visibility');
+    const addressVisibleField = document.getElementById('id_address_visible_to_all');
+
+    const sensitiveCategories = ['demonstration', 'march', 'rally', 'canvassing', 'neighborhood_organizing'];
+
+    let visibilityTouched = false;
+    let addressTouched = false;
+
+    if (visibilityField) {
+        visibilityField.addEventListener('change', () => { visibilityTouched = true; });
+    }
+    if (addressVisibleField) {
+        addressVisibleField.addEventListener('change', () => { addressTouched = true; });
+    }
+
+    if (categoryField) {
+        categoryField.addEventListener('change', () => {
+            const isSensitive = sensitiveCategories.includes(categoryField.value);
+
+            if (!visibilityTouched && visibilityField) {
+                visibilityField.value = isSensitive ? 'unlisted' : 'public';
+            }
+            if (!addressTouched && addressVisibleField) {
+                addressVisibleField.checked = !isSensitive;
+            }
+        });
+    }
+</script>
 {% endblock %}

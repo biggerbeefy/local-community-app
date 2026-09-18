@@ -1,42 +1,149 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>{{ group.name }}</h1>
-<p>{{ group.description }}</p>
-<p>{{ members.count }} member{{ members.count|pluralize }}</p>
 
-{% if user.is_authenticated %}
-    {% if membership %}
-        {% if membership.status == 'pending' %}
-            <p><em>Your request to join is pending approval.</em></p>
-        {% else %}
-            <p>You're a {{ membership.role }} of this group.</p>
-            <form method="post" action="{% url 'group_leave' group.id %}">
-                {% csrf_token %}
-                <button type="submit">Leave Group</button>
-            </form>
-        {% endif %}
-    {% else %}
-        <form method="post" action="{% url 'group_join' group.id %}">
-            {% csrf_token %}
-            <button type="submit">{% if group.is_public %}Join Group{% else %}Request to Join{% endif %}</button>
-        </form>
+<div class="group-banner">
+    {% if group.banner_image %}
+        <img src="{{ group.banner_image.url }}" alt="{{ group.name }} banner">
     {% endif %}
-{% else %}
-    <p><a href="{% url 'login' %}">Log in to join</a></p>
+</div>
+
+<div class="group-header">
+    <div class="group-header-left">
+        {% if group.profile_picture %}
+            <img src="{{ group.profile_picture.url }}" alt="{{ group.name }}" class="group-header-pic">
+        {% endif %}
+        <h1>{{ group.name }}</h1>
+    </div>
+
+    <div class="group-header-right">
+        <button id="member-count-btn" class="member-count-link">{{ member_count_display }} member{{ member_count|pluralize }}</button>
+
+        {% if user.is_authenticated %}
+            {% if membership %}
+                {% if membership.status == 'pending' %}
+                    <span><em>Request pending</em></span>
+                {% elif membership.status == 'banned' %}
+                    <span><em>Banned</em></span>
+                {% else %}
+                    <form method="post" action="{% url 'group_leave' group.id %}">
+                        {% csrf_token %}
+                        <button type="submit">Leave Group</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <form method="post" action="{% url 'group_join' group.id %}">
+                    {% csrf_token %}
+                    <button type="submit">{% if group.is_public %}Join Group{% else %}Request to Join{% endif %}</button>
+                </form>
+            {% endif %}
+        {% else %}
+            <a href="{% url 'login' %}">Log in to join</a>
+        {% endif %}
+    </div>
+</div>
+
+<p>{{ group.description }}</p>
+<a href="{% url 'post_list' group.id %}">View Wall</a>
+
+{% if is_admin %}
+    <a href="{% url 'group_edit' group.id %}">Edit Group</a>
 {% endif %}
 
-{% if pending_requests %}
-    <h2>Pending Requests</h2>
+<div id="member-popup" class="member-popup hidden">
+    <div class="member-popup-content">
+        <button id="close-member-popup">×</button>
+        <h2>Members</h2>
+        <input type="text" id="member-search" placeholder="Search members...">
+        <ul id="member-popup-list">
+            {% for m in members %}
+                <li class="member-popup-item">{{ m.user.username }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if is_admin %}
+    <h2>Members</h2>
     <ul>
-        {% for req in pending_requests %}
+        {% for m in members %}
             <li>
-                {{ req.user.username }}
-                <form method="post" action="{% url 'approve_member' group.id req.id %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit">Approve</button>
-                </form>
+                {{ m.user.username }} ({{ m.role }})
+                {% if m.role != 'admin' %}
+                    <form method="post" action="{% url 'promote_admin' group.id m.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Make Admin</button>
+                    </form>
+                    <form method="post" action="{% url 'ban_member' group.id m.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Ban</button>
+                    </form>
+                {% endif %}
             </li>
         {% endfor %}
     </ul>
+
+    {% if pending_requests %}
+        <h2>Pending Requests</h2>
+        <ul>
+            {% for req in pending_requests %}
+                <li>
+                    {{ req.user.username }}
+                    <form method="post" action="{% url 'approve_member' group.id req.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Approve</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if banned_members %}
+        <h2>Banned Members</h2>
+        <ul>
+            {% for b in banned_members %}
+                <li>
+                    {{ b.user.username }}
+                    <form method="post" action="{% url 'unban_member' group.id b.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Unban</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 {% endif %}
+
+<h2>Upcoming Events</h2>
+{% if group.events.exists %}
+    <ul>
+        {% for event in group.events.all %}
+            <li><a href="{% url 'event_detail' event.id %}">{{ event.title }}</a> — {{ event.start_time }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No events yet.</p>
+{% endif %}
+
+<script>
+    const btn = document.getElementById('member-count-btn');
+    const popup = document.getElementById('member-popup');
+    const closeBtn = document.getElementById('close-member-popup');
+    const searchInput = document.getElementById('member-search');
+    const items = document.querySelectorAll('.member-popup-item');
+
+    if (btn) {
+        btn.addEventListener('click', () => popup.classList.remove('hidden'));
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => popup.classList.add('hidden'));
+    }
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            items.forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(query) ? '' : 'none';
+            });
+        });
+    }
+</script>
 {% endblock %}

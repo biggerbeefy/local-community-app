@@ -5,6 +5,7 @@ from .models import Group, GroupMembership
 from .forms import GroupForm
 
 
+
 def group_list(request):
     groups = Group.objects.filter(is_discoverable=True)
 
@@ -26,7 +27,19 @@ def group_list(request):
         'group_data': group_data,
         'search_query': search,
     })
+def format_count(n):
+    if n < 1000:
+        return str(n)
+    elif n < 1_000_000:
+        value = n / 1000
+    else:
+        value = n / 1_000_000
 
+    suffix = 'k' if n < 1_000_000 else 'M'
+
+    if value == int(value):
+        return f"{int(value)}{suffix}"
+    return f"{value:.1f}{suffix}"
 
 def group_detail(request, group_id):
     group = get_object_or_404(Group, id=group_id)
@@ -34,16 +47,29 @@ def group_detail(request, group_id):
     if request.user.is_authenticated:
         membership = GroupMembership.objects.filter(group=group, user=request.user).first()
 
-    members = group.memberships.filter(status=GroupMembership.Status.APPROVED)
-    pending_requests = None
-    if membership and membership.role in [GroupMembership.Role.ADMIN, GroupMembership.Role.MODERATOR]:
-        pending_requests = group.memberships.filter(status=GroupMembership.Status.PENDING)
+    is_admin = is_group_admin(request.user, group)
+    is_member = membership is not None and membership.status == 'approved'
+
+    approved_members = group.memberships.filter(status=GroupMembership.Status.APPROVED)
+    member_count = approved_members.count()
+    member_count_display = format_count(member_count)
+
+    can_view_members = group.member_list_public or is_member
+    members = approved_members if can_view_members else GroupMembership.objects.none()
+
+    pending_requests = group.memberships.filter(status=GroupMembership.Status.PENDING) if is_admin else None
+    banned_members = group.memberships.filter(status=GroupMembership.Status.BANNED) if is_admin else None
 
     return render(request, 'groups/group_detail.html', {
         'group': group,
         'membership': membership,
         'members': members,
+        'member_count': member_count,
+        'member_count_display': member_count_display,
+        'can_view_members': can_view_members,
         'pending_requests': pending_requests,
+        'banned_members': banned_members,
+        'is_admin': is_admin,
     })
 
 
@@ -68,6 +94,9 @@ def group_join(request, group_id):
     group = get_object_or_404(Group, id=group_id)
     existing = GroupMembership.objects.filter(group=group, user=request.user).first()
 
+    if existing and existing.status == GroupMembership.Status.BANNED:
+        return HttpResponseForbidden("You have been banned from this group.")
+
     if not existing:
         status = GroupMembership.Status.APPROVED if group.is_public else GroupMembership.Status.PENDING
         GroupMembership.objects.create(group=group, user=request.user, status=status)
@@ -89,6 +118,72 @@ def approve_member(request, group_id, membership_id):
 
     if not requester_membership or requester_membership.role not in [GroupMembership.Role.ADMIN, GroupMembership.Role.MODERATOR]:
         return HttpResponseForbidden("You don't have permission to approve members.")
+
+    membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
+    membership.status = GroupMembership.Status.APPROVED
+    membership.save()
+
+    return redirect('group_detail', group_id=group.id)
+
+def is_group_admin(user, group):
+    if not user.is_authenticated:
+        return False
+    membership = GroupMembership.objects.filter(group=group, user=user, status='approved').first()
+    return membership is not None and membership.role == GroupMembership.Role.ADMIN
+
+
+@login_required
+def group_edit(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    if not is_group_admin(request.user, group):
+        return HttpResponseForbidden("Only admins can edit this group.")
+
+    if request.method == 'POST':
+        form = GroupForm(request.POST, request.FILES, instance=group)
+        if form.is_valid():
+            form.save()
+            return redirect('group_detail', group_id=group.id)
+    else:
+        form = GroupForm(instance=group)
+
+    return render(request, 'groups/group_form.html', {'form': form, 'editing': True})
+
+
+@login_required
+def promote_admin(request, group_id, membership_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    if not is_group_admin(request.user, group):
+        return HttpResponseForbidden("Only admins can promote members.")
+
+    membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
+    membership.role = GroupMembership.Role.ADMIN
+    membership.save()
+
+    return redirect('group_detail', group_id=group.id)
+
+
+@login_required
+def ban_member(request, group_id, membership_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    if not is_group_admin(request.user, group):
+        return HttpResponseForbidden("Only admins can ban members.")
+
+    membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
+    membership.status = GroupMembership.Status.BANNED
+    membership.save()
+
+    return redirect('group_detail', group_id=group.id)
+
+
+@login_required
+def unban_member(request, group_id, membership_id):
+    group = get_object_or_404(Group, id=group_id)
+
+    if not is_group_admin(request.user, group):
+        return HttpResponseForbidden("Only admins can unban members.")
 
     membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
     membership.status = GroupMembership.Status.APPROVED

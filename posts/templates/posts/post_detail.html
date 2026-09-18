@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ post.title|default:"Untitled post" }}</h1>
+<p>by {{ post.author.username }} in <a href="{% url 'group_detail' group.id %}">{{ group.name }}</a> — {{ post.created_at }}</p>
+
+{% if post.body %}<p>{{ post.body }}</p>{% endif %}
+{% if post.link_url %}<p><a href="{{ post.link_url }}">{{ post.link_url }}</a></p>{% endif %}
+{% if post.image %}<img src="{{ post.image.url }}" style="max-width: 100%;">{% endif %}
+
+<a href="{% url 'post_list' group.id %}">Back to wall</a>
+{% endblock %}
