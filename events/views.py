@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Event, RSVP
+from .models import Event, RSVP, HeroBanner
 from .forms import EventForm
 
 def event_list(request):
@@ -18,7 +18,9 @@ def event_list(request):
     if search:
         events = events.filter(title__icontains=search)
 
-    return render(request, 'events/event_list.html', {'events': events, 'categories': Event.Category.choices, 'selected_category': category, 'selected_city': city, 'search_query': search,})
+    banner = HeroBanner.objects.filter(is_active=True).first()
+
+    return render(request, 'events/event_list.html', {'events': events, 'categories': Event.Category.choices, 'selected_category': category, 'selected_city': city, 'search_query': search, 'banner': banner,})
 
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -28,11 +30,13 @@ def event_detail(request, event_id):
         user_rsvp = RSVP.objects.filter(event=event, user=request.user, status=RSVP.Status.GOING).first()
 
     can_see_address = event.address_visible_to_all or user_rsvp is not None
+    going_count = event.rsvps.filter(status=RSVP.Status.GOING).count()
 
     return render(request, 'events/event_detail.html', {
         'event': event,
         'user_rsvp': user_rsvp,
         'can_see_address': can_see_address,
+        'going_count': going_count,
     })
 
 @login_required
@@ -49,7 +53,7 @@ def rsvp_toggle(request, event_id):
 @login_required
 def event_create(request):
     if request.method == 'POST':
-        form = EventForm(request.POST, user=request.user)
+        form = EventForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             event = form.save(commit=False)
             event.organizer = request.user
@@ -71,7 +75,7 @@ def event_edit(request, event_id):
         return HttpResponseForbidden("You don't have permission to edit this event.")
 
     if request.method == 'POST':
-        form = EventForm(request.POST, instance=event, user=request.user)
+        form = EventForm(request.POST, request.FILES, instance=event, user=request.user)
         if form.is_valid():
             form.save()
             return redirect('event_detail', event_id=event.id)

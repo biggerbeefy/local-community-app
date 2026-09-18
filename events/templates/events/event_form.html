@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <h1>{% if editing %}Edit Event{% else %}Create Event{% endif %}</h1>
-<form method="post" id="event-form">
+<form method="post" id="event-form" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">{% if editing %}Save Changes{% else %}Create Event{% endif %}</button>

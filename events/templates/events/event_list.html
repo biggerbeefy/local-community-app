@@ -1,27 +1,48 @@
 {% extends 'base.html' %}
+{% block content_class %}content wide-content{% endblock %}
 {% block content %}
-<h1>Upcoming Events</h1>
-<a href="{% url 'event_create' %}">+ Create Event</a>
 
-<form method="get">
-    <input type="text" name="search" placeholder="Search by title" value="{{ search_query|default:'' }}">
-    <input type="text" name="city" placeholder="Filter by city" value="{{ selected_city|default:'' }}">
+{% if banner %}
+    <section class="hero-banner{% if banner.eyebrow or banner.headline or banner.button_text %} has-text{% endif %}" style="background-image: url('{{ banner.image.url }}');">
+        {% if banner.eyebrow or banner.headline or banner.button_text %}
+            <div class="hero-banner-content">
+                {% if banner.eyebrow %}<span class="hero-banner-eyebrow">{{ banner.eyebrow }}</span>{% endif %}
+                {% if banner.headline %}<h1 class="hero-banner-headline">{{ banner.headline }}</h1>{% endif %}
+                {% if banner.button_text %}
+                    <a href="{{ banner.button_url|default:'#' }}" class="hero-banner-button">{{ banner.button_text }}</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+{% endif %}
+
+<form method="get" class="category-filter-bar">
+    <input type="hidden" name="search" value="{{ search_query|default:'' }}">
+    <input type="hidden" name="city" value="{{ selected_city|default:'' }}">
     <select name="category">
         <option value="">All Categories</option>
         {% for value, label in categories %}
             <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
     </select>
-    <button type="submit">Filter</button>
-    <a href="{% url 'event_list' %}">Clear</a>
+    <button type="submit" class="filter-btn">Filter</button>
+    <a href="{% url 'event_list' %}" class="clear-btn">Clear</a>
 </form>
 
-<ul>
+<div class="event-grid">
     {% for event in events %}
-        <li>
-            <strong><a href="{% url 'event_detail' event.id %}">{{ event.title }}</a></strong> — {{ event.get_category_display }}<br>
-            {{ event.city }}, {{ event.state }} — {{ event.start_time }}
-        </li>
+        <a href="{% url 'event_detail' event.id %}" class="event-card">
+            {% if event.image %}
+                <img src="{{ event.image.url }}" alt="" class="event-card-image">
+            {% else %}
+                <div class="event-card-image event-card-image-placeholder"></div>
+            {% endif %}
+            <div class="event-card-body">
+                <div class="event-card-title">{{ event.title }}</div>
+                <div class="event-card-meta">{{ event.get_category_display }}</div>
+                <div class="event-card-meta">{{ event.city }}, {{ event.state }} — {{ event.start_time }}</div>
+            </div>
+        </a>
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

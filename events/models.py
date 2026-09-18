@@ -72,6 +72,8 @@ class Event(models.Model):
     # Capacity / logistics
     max_attendees = models.PositiveIntegerField(null=True, blank=True)  # null = unlimited
 
+    image = models.ImageField(upload_to='events/', blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -110,3 +112,31 @@ class RSVP(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.event.title} ({self.status})"
+
+
+class HeroBanner(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    eyebrow = models.CharField(
+        max_length=100, blank=True,
+        help_text="Small label above the headline, e.g. 'GET INTO IT'"
+    )
+    headline = models.CharField(
+        max_length=200, blank=True,
+        help_text="Leave blank to show the photo on its own, with no text overlay (e.g. if the photo already has messaging baked in)"
+    )
+    button_text = models.CharField(max_length=50, blank=True)
+    button_url = models.CharField(max_length=300, blank=True)
+    image = models.ImageField(upload_to='banners/')
+
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Only one active banner is shown at a time, on the events page"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.headline or f"Banner ({self.created_at:%Y-%m-%d})"
+
+    class Meta:
+        ordering = ['-created_at']

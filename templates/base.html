@@ -2,15 +2,29 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Grassroot{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
     <header id="topbar">
         <div id="topbar-left">
             <button id="sidebar-toggle" aria-label="Open menu">☰</button>
-            <a href="{% url 'event_list' %}" id="logo-link">Grassroot</a>
+            <a href="{% url 'event_list' %}" id="logo-link">
+                <img src="{% static 'images/logo.PNG' %}" alt="Grassroot">
+            </a>
         </div>
+
+        <form id="topbar-search" action="{% url 'event_list' %}" method="get">
+            <input type="text" name="search" placeholder="Search events" value="{{ request.GET.search }}">
+            <span class="topbar-search-divider"></span>
+            <input type="text" name="city" placeholder="City" value="{{ request.GET.city }}">
+            <button type="submit" aria-label="Search">🔍</button>
+        </form>
+
         {% if user.is_authenticated %}
             <a href="{% url 'profile' %}" id="topbar-profile-pic">
                 {% if user.profile_picture %}
@@ -42,10 +56,10 @@
         </nav>
     </aside>
 
-    <div class="content">
-        {% block content %}
-        {% endblock %}
-    </div>
+    <div class="{% block content_class %}content{% endblock %}">
+    {% block content %}
+    {% endblock %}
+</div>
 
     <script>
         const toggle = document.getElementById('sidebar-toggle');

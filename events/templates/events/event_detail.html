@@ -1,42 +1,88 @@
 {% extends 'base.html' %}
+{% block content_class %}content wide-content{% endblock %}
 {% block content %}
 
-<h1>{{ event.title }}</h1>
-<p>{{ event.get_category_display }} — {{ event.city }}, {{ event.state }}</p>
-<p>{{ event.start_time }}</p>
-{% if event.group %}
-    <p>Hosted by <a href="{% url 'group_detail' event.group.id %}">{{ event.group.name }}</a></p>
-{% endif %}
-{% if event.general_area %}
-    <p><strong>General area:</strong> {{ event.general_area }}</p>
+{% if event.image %}
+    <img src="{{ event.image.url }}" alt="" class="event-detail-image">
 {% endif %}
 
-{% if can_see_address %}
-    <p><strong>Exact address:</strong> {{ event.exact_address }}</p>
-{% else %}
-    <p><em>Exact address visible after you RSVP.</em></p>
-{% endif %}
+<div class="event-detail-layout">
+    <div class="event-detail-main">
+        <span class="event-category-badge">{{ event.get_category_display }}</span>
+        <h1>{{ event.title }}</h1>
 
-<p>{{ event.description }}</p>
+        <div class="event-detail-organizer">
+            {% if event.group %}
+                {% if event.group.profile_picture %}
+                    <img src="{{ event.group.profile_picture.url }}" alt="" class="event-detail-organizer-avatar">
+                {% else %}
+                    <div class="event-detail-organizer-avatar event-detail-organizer-avatar-placeholder">{{ event.group.name|first|upper }}</div>
+                {% endif %}
+                <div>
+                    <div class="event-detail-organizer-name">by <a href="{% url 'group_detail' event.group.id %}">{{ event.group.name }}</a></div>
+                    <div class="event-detail-organizer-sub">Organized by {{ event.organizer.username }}</div>
+                </div>
+            {% else %}
+                {% if event.organizer.profile_picture %}
+                    <img src="{{ event.organizer.profile_picture.url }}" alt="" class="event-detail-organizer-avatar">
+                {% else %}
+                    <div class="event-detail-organizer-avatar event-detail-organizer-avatar-placeholder">{{ event.organizer.username|first|upper }}</div>
+                {% endif %}
+                <div class="event-detail-organizer-name">by {{ event.organizer.username }}</div>
+            {% endif %}
+        </div>
 
-<p>Organized by {{ event.organizer.username }}</p>
+        <div class="event-detail-meta">
+            <div class="event-detail-meta-row">
+                <span class="event-detail-meta-icon">📍</span>
+                <span>
+                    {% if event.general_area %}{{ event.general_area }} — {% endif %}{{ event.city }}, {{ event.state }}
+                    {% if can_see_address %}
+                        <br><span class="event-detail-address">{{ event.exact_address }}</span>
+                    {% else %}
+                        <br><span class="event-detail-address-hint">Exact address visible after you RSVP</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="event-detail-meta-row">
+                <span class="event-detail-meta-icon">🗓</span>
+                <span>{{ event.start_time }}{% if event.end_time %} – {{ event.end_time }}{% endif %}</span>
+            </div>
+        </div>
 
-{% if user == event.organizer %}
-    <a href="{% url 'event_edit' event.id %}">Edit Event</a> |
-    <a href="{% url 'event_delete' event.id %}">Delete Event</a>
-{% endif %}
+        <h2>Overview</h2>
+        <p class="event-detail-description">{{ event.description }}</p>
 
-{% if user.is_authenticated %}
-    <form method="post" action="{% url 'rsvp_toggle' event.id %}">
-        {% csrf_token %}
-        {% if user_rsvp %}
-            <button type="submit">Cancel RSVP</button>
-        {% else %}
-            <button type="submit">RSVP - I'm Going</button>
+        {% if user == event.organizer %}
+            <div class="event-detail-owner-actions">
+                <a href="{% url 'event_edit' event.id %}">Edit Event</a> |
+                <a href="{% url 'event_delete' event.id %}">Delete Event</a>
+            </div>
         {% endif %}
-    </form>
-{% else %}
-    <p><a href="{% url 'login' %}?next={% url 'event_detail' event.id %}">Log in to RSVP</a></p>
-{% endif %}
-{% endblock %}
+    </div>
 
+    <aside class="event-detail-sidebar">
+        <div class="event-rsvp-card">
+            <div class="event-rsvp-card-badge">Free</div>
+            <div class="event-rsvp-card-date">{{ event.start_time }}</div>
+
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'rsvp_toggle' event.id %}">
+                    {% csrf_token %}
+                    {% if user_rsvp %}
+                        <button type="submit" class="event-rsvp-btn event-rsvp-btn-going">Cancel RSVP</button>
+                    {% else %}
+                        <button type="submit" class="event-rsvp-btn">RSVP</button>
+                    {% endif %}
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}?next={% url 'event_detail' event.id %}" class="event-rsvp-btn">RSVP</a>
+            {% endif %}
+
+            <div class="event-rsvp-going-count">
+                {{ going_count }} going{% if event.max_attendees %} · {{ event.max_attendees }} max{% endif %}
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
