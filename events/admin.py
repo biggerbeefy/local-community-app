@@ -1,14 +1,18 @@
 from django.contrib import admin
-from .models import Event, RSVP, HeroBanner
+from .models import Event, RSVP, HeroBanner, SavedEvent
 
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('title', 'category', 'organizer', 'city', 'start_time', 'visibility')
-    list_filter = ('category', 'visibility', 'city')
+    list_display = ('title', 'category', 'organizer', 'city', 'start_time', 'visibility', 'is_draft')
+    list_filter = ('category', 'visibility', 'is_draft', 'city')
     search_fields = ('title', 'description', 'city', 'zip_code')
 
 class RSVPAdmin(admin.ModelAdmin):
     list_display = ('event', 'user', 'status', 'checked_in', 'created_at')
     list_filter = ('status', 'checked_in')
+    search_fields = ('user__username', 'event__title')
+
+class SavedEventAdmin(admin.ModelAdmin):
+    list_display = ('event', 'user', 'created_at')
     search_fields = ('user__username', 'event__title')
 
 class HeroBannerAdmin(admin.ModelAdmin):
@@ -17,4 +21,5 @@ class HeroBannerAdmin(admin.ModelAdmin):
 
 admin.site.register(Event, EventAdmin)
 admin.site.register(RSVP, RSVPAdmin)
+admin.site.register(SavedEvent, SavedEventAdmin)
 admin.site.register(HeroBanner, HeroBannerAdmin)

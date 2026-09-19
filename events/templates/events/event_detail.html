@@ -9,6 +9,7 @@
 <div class="event-detail-layout">
     <div class="event-detail-main">
         <span class="event-category-badge">{{ event.get_category_display }}</span>
+        {% if event.is_draft %}<span class="event-category-badge event-draft-badge">Draft</span>{% endif %}
         <h1>{{ event.title }}</h1>
 
         <div class="event-detail-organizer">
@@ -73,6 +74,15 @@
                         <button type="submit" class="event-rsvp-btn event-rsvp-btn-going">Cancel RSVP</button>
                     {% else %}
                         <button type="submit" class="event-rsvp-btn">RSVP</button>
+                    {% endif %}
+                </form>
+
+                <form method="post" action="{% url 'event_save_toggle' event.id %}" class="event-save-form">
+                    {% csrf_token %}
+                    {% if is_saved %}
+                        <button type="submit" class="event-save-btn event-save-btn-active">🔖 Saved</button>
+                    {% else %}
+                        <button type="submit" class="event-save-btn">🔖 Save event</button>
                     {% endif %}
                 </form>
             {% else %}

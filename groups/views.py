@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
+from django.db.models import Count, Q
 from .models import Group, GroupMembership
 from .forms import GroupForm
 
 
 
 def group_list(request):
-    groups = Group.objects.filter(is_discoverable=True)
+    groups = Group.objects.filter(is_discoverable=True).annotate(
+        member_count=Count('memberships', filter=Q(memberships__status=GroupMembership.Status.APPROVED))
+    )
 
     search = request.GET.get('search')
     if search:
@@ -19,7 +22,12 @@ def group_list(request):
         user_membership_map = {m.group_id: m.status for m in memberships}
 
     group_data = [
-        {'group': g, 'membership_status': user_membership_map.get(g.id)}
+        {
+            'group': g,
+            'membership_status': user_membership_map.get(g.id),
+            'member_count': g.member_count,
+            'member_count_display': format_count(g.member_count),
+        }
         for g in groups
     ]
 

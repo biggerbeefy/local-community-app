@@ -74,6 +74,11 @@ class Event(models.Model):
 
     image = models.ImageField(upload_to='events/', blank=True, null=True)
 
+    is_draft = models.BooleanField(
+        default=False,
+        help_text="Drafts are only visible to you, and never show up in the public events feed"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -112,6 +117,25 @@ class RSVP(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.event.title} ({self.status})"
+
+
+class SavedEvent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='saved_by')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='saved_events'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('event', 'user')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} saved {self.event.title}"
 
 
 class HeroBanner(models.Model):

@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Event, RSVP, HeroBanner
+from django.http import HttpResponseForbidden
+from django.utils import timezone
+from .models import Event, RSVP, HeroBanner, SavedEvent
 from .forms import EventForm
 
 def event_list(request):
-    events = Event.objects.filter(visibility=Event.Visibility.PUBLIC).order_by('start_time')
+    events = Event.objects.filter(visibility=Event.Visibility.PUBLIC, is_draft=False).order_by('start_time')
 
     category = request.GET.get('category')
     if category:
@@ -25,9 +27,14 @@ def event_list(request):
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
+    if event.is_draft and event.organizer != request.user:
+        return HttpResponseForbidden("This event is still a draft.")
+
     user_rsvp = None
+    is_saved = False
     if request.user.is_authenticated:
         user_rsvp = RSVP.objects.filter(event=event, user=request.user, status=RSVP.Status.GOING).first()
+        is_saved = SavedEvent.objects.filter(event=event, user=request.user).exists()
 
     can_see_address = event.address_visible_to_all or user_rsvp is not None
     going_count = event.rsvps.filter(status=RSVP.Status.GOING).count()
@@ -37,6 +44,7 @@ def event_detail(request, event_id):
         'user_rsvp': user_rsvp,
         'can_see_address': can_see_address,
         'going_count': going_count,
+        'is_saved': is_saved,
     })
 
 @login_required
@@ -50,6 +58,37 @@ def rsvp_toggle(request, event_id):
         RSVP.objects.create(event=event, user=request.user, status=RSVP.Status.GOING)
 
     return redirect('event_detail', event_id=event.id)
+
+@login_required
+def event_save_toggle(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    existing = SavedEvent.objects.filter(event=event, user=request.user).first()
+
+    if existing:
+        existing.delete()
+    else:
+        SavedEvent.objects.create(event=event, user=request.user)
+
+    return redirect('event_detail', event_id=event.id)
+
+@login_required
+def my_events(request):
+    tab = request.GET.get('tab', 'upcoming')
+    now = timezone.now()
+
+    if tab == 'saved':
+        events = Event.objects.filter(saved_by__user=request.user).order_by('start_time')
+    elif tab == 'going':
+        events = Event.objects.filter(rsvps__user=request.user, rsvps__status=RSVP.Status.GOING).order_by('start_time')
+    elif tab == 'past':
+        events = Event.objects.filter(organizer=request.user, is_draft=False, start_time__lt=now).order_by('-start_time')
+    elif tab == 'drafts':
+        events = Event.objects.filter(organizer=request.user, is_draft=True).order_by('-updated_at')
+    else:
+        tab = 'upcoming'
+        events = Event.objects.filter(organizer=request.user, is_draft=False, start_time__gte=now).order_by('start_time')
+
+    return render(request, 'events/my_events.html', {'events': events, 'active_tab': tab})
 @login_required
 def event_create(request):
     if request.method == 'POST':

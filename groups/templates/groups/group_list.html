@@ -1,28 +1,34 @@
 {% extends 'base.html' %}
+{% block content_class %}content wide-content{% endblock %}
 {% block content %}
-<h1>Groups</h1>
-<a href="{% url 'group_create' %}">+ Create Group</a>
+<h1>Communities</h1>
+<a href="{% url 'group_create' %}">+ Create Community</a>
 
-<form method="get">
-    <input type="text" name="search" placeholder="Search groups" value="{{ search_query|default:'' }}">
-    <button type="submit">Search</button>
+<form method="get" class="category-filter-bar">
+    <input type="text" name="search" placeholder="Search communities" value="{{ search_query|default:'' }}">
+    <button type="submit" class="filter-btn">Search</button>
 </form>
 
-<ul>
+<div class="event-grid">
     {% for entry in group_data %}
-        <li>
+        <a href="{% url 'group_detail' entry.group.id %}" class="event-card">
             {% if entry.group.profile_picture %}
-                <img src="{{ entry.group.profile_picture.url }}" alt="{{ entry.group.name }}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover; vertical-align: middle;">
+                <img src="{{ entry.group.profile_picture.url }}" alt="" class="event-card-image">
+            {% else %}
+                <div class="event-card-image event-card-image-placeholder"></div>
             {% endif %}
-            <strong><a href="{% url 'group_detail' entry.group.id %}">{{ entry.group.name }}</a></strong>
-            {% if entry.membership_status == 'approved' %}
-                — <em>Member</em>
-            {% elif entry.membership_status == 'pending' %}
-                — <em>Request pending</em>
-            {% elif not entry.group.is_public %}
-                — <em>Request to join</em>
-            {% endif %}
-        </li>
+            <div class="event-card-body">
+                <div class="event-card-title">{{ entry.group.name }}</div>
+                <div class="event-card-meta">{{ entry.member_count_display }} member{{ entry.member_count|pluralize }}</div>
+                {% if entry.membership_status == 'approved' %}
+                    <div class="event-card-meta">Member</div>
+                {% elif entry.membership_status == 'pending' %}
+                    <div class="event-card-meta">Request pending</div>
+                {% elif not entry.group.is_public %}
+                    <div class="event-card-meta">Request to join</div>
+                {% endif %}
+            </div>
+        </a>
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

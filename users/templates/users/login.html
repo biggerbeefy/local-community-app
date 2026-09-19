@@ -1,13 +1,23 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block topbar %}{% endblock %}
+{% block content_class %}content no-topbar{% endblock %}
 {% block content %}
 
-<h1>Log In</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Log In</button>
-</form>
-<p>Don't have an account? <a href="{% url 'signup' %}">Sign up</a></p>
-<p><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
+<div class="auth-card">
+    <a href="{% url 'event_list' %}" class="auth-card-logo">
+        <img src="{% static 'images/logo.PNG' %}" alt="Grassroot">
+    </a>
+    <h1>Sign In</h1>
+
+    <form method="post" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-submit">Sign In</button>
+    </form>
+
+    <p class="auth-links">Don't have an account? <a href="{% url 'signup' %}">Sign up</a></p>
+    <p class="auth-links"><a href="{% url 'password_reset' %}">Forgot your password?</a></p>
+</div>
 
 {% endblock %}

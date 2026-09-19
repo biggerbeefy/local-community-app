@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
+    {% block topbar %}
     <header id="topbar">
         <div id="topbar-left">
             <button id="sidebar-toggle" aria-label="Open menu">☰</button>
@@ -32,7 +33,10 @@
                 {% else %}
                     <div id="topbar-profile-placeholder">{{ user.username|first|upper }}</div>
                 {% endif %}
+                <span id="topbar-profile-username">{{ user.username }}</span>
             </a>
+        {% else %}
+            <a href="{% url 'login' %}?next={{ request.path }}" id="topbar-signin">Sign In</a>
         {% endif %}
     </header>
 
@@ -40,21 +44,25 @@
 
     <aside id="sidebar">
         <nav>
-            <a href="{% url 'group_list' %}">Groups</a>
-            <a href="{% url 'event_list' %}">Events</a>
+            <a href="{% url 'event_list' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">🏠</span><span class="sidebar-nav-label">Home</span></a>
             {% if user.is_authenticated %}
-                <a href="{% url 'event_create' %}">Create Event</a>
-                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'my_events' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">🎟️</span><span class="sidebar-nav-label">My Events</span></a>
+            {% endif %}
+            <a href="{% url 'group_list' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">👥</span><span class="sidebar-nav-label">Communities</span></a>
+            <a href="{% url 'profile' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">👤</span><span class="sidebar-nav-label">Account</span></a>
+            {% if user.is_authenticated %}
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
-                    <button type="submit">Log out</button>
+                    <button type="submit" class="sidebar-nav-link"><span class="sidebar-nav-icon">🚪</span><span class="sidebar-nav-label">Log out</span></button>
                 </form>
             {% else %}
-                <a href="{% url 'login' %}">Log in</a>
-                <a href="{% url 'signup' %}">Sign up</a>
+                <a href="{% url 'login' %}?next={{ request.path }}" class="sidebar-nav-link"><span class="sidebar-nav-icon">🔑</span><span class="sidebar-nav-label">Log in</span></a>
             {% endif %}
         </nav>
+
+        <a href="{% url 'event_create' %}" class="sidebar-create-btn">Create Event</a>
     </aside>
+    {% endblock %}
 
     <div class="{% block content_class %}content{% endblock %}">
     {% block content %}
@@ -66,17 +74,19 @@
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
 
-        function closeSidebar() {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('visible');
+        if (toggle && sidebar && overlay) {
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+            }
+
+            toggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('visible');
+            });
+
+            overlay.addEventListener('click', closeSidebar);
         }
-
-        toggle.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('visible');
-        });
-
-        overlay.addEventListener('click', closeSidebar);
     </script>
 </body>
 </html>
