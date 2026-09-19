@@ -1,0 +1,8 @@
+<a href="{% url 'notification_read' notification.id %}" class="notif-item{% if not notification.is_read %} unread{% endif %}">
+    <span class="notif-icon">{{ notification.icon }}</span>
+    <div class="notif-item-body">
+        <div class="notif-item-message">{{ notification.message }}</div>
+        <div class="notif-item-time">{{ notification.created_at }}</div>
+    </div>
+    {% if not notification.is_read %}<span class="notif-unread-dot"></span>{% endif %}
+</a>

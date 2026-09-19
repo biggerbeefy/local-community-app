@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Chats</h1>
+
+<form method="get" action="{% url 'start_conversation' %}" class="chat-compose-form chat-compose-form-page">
+    <input type="text" name="username" placeholder="Message someone by username" autocomplete="off">
+    <button type="submit" class="filter-btn">New Message</button>
+</form>
+
+{% if conversations %}
+    <div class="chat-list-page">
+        {% for convo in conversations %}
+            {% include 'chat/_conversation_item.html' %}
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="my-events-empty">No messages yet.</p>
+{% endif %}
+{% endblock %}

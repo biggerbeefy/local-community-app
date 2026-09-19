@@ -1,11 +1,18 @@
 {% extends 'base.html' %}
 {% block content_class %}content wide-content{% endblock %}
 {% block content %}
-<h1>Communities</h1>
-<a href="{% url 'group_create' %}">+ Create Community</a>
+<h1>Explore Groups</h1>
+
+<div class="quick-filter-bar">
+    {% for key, label in quick_filters %}
+        <a href="?filter={{ key }}{% if search_query %}&search={{ search_query }}{% endif %}"
+           class="quick-filter-chip{% if key == active_filter %} active{% endif %}">{{ label }}</a>
+    {% endfor %}
+</div>
 
 <form method="get" class="category-filter-bar">
-    <input type="text" name="search" placeholder="Search communities" value="{{ search_query|default:'' }}">
+    <input type="hidden" name="filter" value="{{ active_filter }}">
+    <input type="text" name="search" placeholder="Search groups" value="{{ search_query|default:'' }}">
     <button type="submit" class="filter-btn">Search</button>
 </form>
 
@@ -30,5 +37,10 @@
             </div>
         </a>
     {% endfor %}
+</div>
+
+<div class="fab-wrapper">
+    <a href="{% url 'group_create' %}" class="fab-create-group" aria-label="Create Group">+</a>
+    <span class="fab-tooltip">Create Group</span>
 </div>
 {% endblock %}

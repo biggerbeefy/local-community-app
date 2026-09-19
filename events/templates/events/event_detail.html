@@ -21,7 +21,12 @@
                 {% endif %}
                 <div>
                     <div class="event-detail-organizer-name">by <a href="{% url 'group_detail' event.group.id %}">{{ event.group.name }}</a></div>
-                    <div class="event-detail-organizer-sub">Organized by {{ event.organizer.username }}</div>
+                    <div class="event-detail-organizer-sub">
+                        Organized by {{ event.organizer.username }}
+                        {% if user.is_authenticated and user != event.organizer %}
+                            · <a href="{% url 'conversation_detail' event.organizer.id %}">Message</a>
+                        {% endif %}
+                    </div>
                 </div>
             {% else %}
                 {% if event.organizer.profile_picture %}
@@ -29,7 +34,12 @@
                 {% else %}
                     <div class="event-detail-organizer-avatar event-detail-organizer-avatar-placeholder">{{ event.organizer.username|first|upper }}</div>
                 {% endif %}
-                <div class="event-detail-organizer-name">by {{ event.organizer.username }}</div>
+                <div>
+                    <div class="event-detail-organizer-name">by {{ event.organizer.username }}</div>
+                    {% if user.is_authenticated and user != event.organizer %}
+                        <div class="event-detail-organizer-sub"><a href="{% url 'conversation_detail' event.organizer.id %}">Message</a></div>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
 
@@ -60,6 +70,23 @@
                 <a href="{% url 'event_delete' event.id %}">Delete Event</a>
             </div>
         {% endif %}
+
+        {% if pending_rsvps %}
+            <div class="event-pending-rsvps">
+                <h2>Pending Requests</h2>
+                <ul>
+                    {% for rsvp in pending_rsvps %}
+                        <li>
+                            {{ rsvp.user.username }}
+                            <form method="post" action="{% url 'rsvp_approve' event.id rsvp.id %}" class="event-pending-rsvp-form">
+                                {% csrf_token %}
+                                <button type="submit" class="filter-btn">Approve</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
     </div>
 
     <aside class="event-detail-sidebar">
@@ -70,7 +97,9 @@
             {% if user.is_authenticated %}
                 <form method="post" action="{% url 'rsvp_toggle' event.id %}">
                     {% csrf_token %}
-                    {% if user_rsvp %}
+                    {% if user_rsvp.status == 'pending' %}
+                        <button type="submit" class="event-rsvp-btn event-rsvp-btn-going">Request Pending — Cancel</button>
+                    {% elif user_rsvp %}
                         <button type="submit" class="event-rsvp-btn event-rsvp-btn-going">Cancel RSVP</button>
                     {% else %}
                         <button type="submit" class="event-rsvp-btn">RSVP</button>

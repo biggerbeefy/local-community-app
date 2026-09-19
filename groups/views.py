@@ -2,9 +2,23 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.db.models import Count, Q
+from notifications.models import Notification
 from .models import Group, GroupMembership
 from .forms import GroupForm
 
+
+
+QUICK_FILTERS = [
+    ('all', 'All'),
+    ('nearby', 'Nearby'),
+    ('active', 'Active'),
+    ('new', 'New'),
+    ('popular', 'Popular'),
+    ('events', 'Events'),
+    ('local', 'Local'),
+    ('online', 'Online'),
+]
+QUICK_FILTER_KEYS = [key for key, label in QUICK_FILTERS]
 
 
 def group_list(request):
@@ -15,6 +29,21 @@ def group_list(request):
     search = request.GET.get('search')
     if search:
         groups = groups.filter(name__icontains=search)
+
+    quick_filter = request.GET.get('filter', 'all')
+    if quick_filter not in QUICK_FILTER_KEYS:
+        quick_filter = 'all'
+
+    if quick_filter == 'new':
+        groups = groups.order_by('-created_at')
+    elif quick_filter == 'popular':
+        groups = groups.order_by('-member_count')
+    elif quick_filter == 'active':
+        groups = groups.annotate(post_count=Count('posts')).order_by('-post_count')
+    elif quick_filter == 'events':
+        groups = groups.filter(events__isnull=False).distinct()
+    # 'nearby', 'local' and 'online' have no location/format data on Group yet,
+    # so they currently fall back to the same discoverable-groups list as 'all'.
 
     user_membership_map = {}
     if request.user.is_authenticated:
@@ -34,6 +63,8 @@ def group_list(request):
     return render(request, 'groups/group_list.html', {
         'group_data': group_data,
         'search_query': search,
+        'quick_filters': QUICK_FILTERS,
+        'active_filter': quick_filter,
     })
 def format_count(n):
     if n < 1000:
@@ -139,6 +170,13 @@ def approve_member(request, group_id, membership_id):
     membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
     membership.status = GroupMembership.Status.APPROVED
     membership.save()
+
+    Notification.objects.create(
+        recipient=membership.user,
+        notif_type=Notification.Type.GROUP_ACCEPTED,
+        message=f'You were accepted into {group.name}',
+        link=f'/groups/{group.id}/',
+    )
 
     return redirect('group_detail', group_id=group.id)
 

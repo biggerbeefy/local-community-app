@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from groups.models import Group, GroupMembership
+from notifications.models import Notification
 from .models import Post
 from .forms import PostForm
 
@@ -113,6 +114,14 @@ def comment_create(request, post_id):
                 comment.parent = get_object_or_404(Comment, id=parent_id)
             comment.save()
 
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    notif_type=Notification.Type.POST_COMMENT,
+                    message=f'{request.user.username} commented on your post "{post.title or "Untitled post"}"',
+                    link=f'/posts/{post.id}/',
+                )
+
     return redirect('post_detail', post_id=post.id)
 
 
@@ -138,5 +147,15 @@ def toggle_like(request, model_name, object_id):
         existing.delete()
     else:
         Like.objects.create(user=request.user, content_type=content_type, object_id=object_id)
+
+        if model_name == 'post':
+            like_count = Like.objects.filter(content_type=content_type, object_id=object_id).count()
+            if like_count == 10 and obj.author != request.user:
+                Notification.objects.create(
+                    recipient=obj.author,
+                    notif_type=Notification.Type.POST_LIKES,
+                    message=f'Your post "{obj.title or "Untitled post"}" reached 10 likes!',
+                    link=f'/posts/{obj.id}/',
+                )
 
     return redirect(request.META.get('HTTP_REFERER', 'post_list'))

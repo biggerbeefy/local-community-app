@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="chat-thread-header">
+    {% if partner.profile_picture %}
+        <img src="{{ partner.profile_picture.url }}" alt="" class="chat-panel-avatar">
+    {% else %}
+        <div class="chat-panel-avatar chat-panel-avatar-placeholder">{{ partner.username|first|upper }}</div>
+    {% endif %}
+    <h1>{{ partner.username }}</h1>
+</div>
+
+<div class="chat-thread">
+    {% for message in messages_list %}
+        <div class="chat-bubble-row{% if message.sender == request.user %} chat-bubble-row-me{% endif %}">
+            <div class="chat-bubble">
+                {{ message.body }}
+                <div class="chat-bubble-time">{{ message.created_at }}</div>
+            </div>
+        </div>
+    {% empty %}
+        <p class="my-events-empty">No messages yet. Say hello!</p>
+    {% endfor %}
+</div>
+
+<form method="post" action="{% url 'send_message' partner.id %}" class="chat-reply-form">
+    {% csrf_token %}
+    <input type="text" name="body" placeholder="Type a message..." autocomplete="off" required>
+    <button type="submit" class="filter-btn">Send</button>
+</form>
+{% endblock %}

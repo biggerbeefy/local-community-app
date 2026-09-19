@@ -92,6 +92,7 @@ class RSVP(models.Model):
 
     class Status(models.TextChoices):
         GOING = 'going', 'Going'
+        PENDING = 'pending', 'Pending Approval'
         INTERESTED = 'interested', 'Interested'
         WAITLISTED = 'waitlisted', 'Waitlisted'
         CANCELLED = 'cancelled', 'Cancelled'

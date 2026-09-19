@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.utils import timezone
+from notifications.models import Notification
 from .models import Event, RSVP, HeroBanner, SavedEvent
 from .forms import EventForm
 
@@ -33,11 +34,15 @@ def event_detail(request, event_id):
     user_rsvp = None
     is_saved = False
     if request.user.is_authenticated:
-        user_rsvp = RSVP.objects.filter(event=event, user=request.user, status=RSVP.Status.GOING).first()
+        user_rsvp = RSVP.objects.filter(event=event, user=request.user).first()
         is_saved = SavedEvent.objects.filter(event=event, user=request.user).exists()
 
-    can_see_address = event.address_visible_to_all or user_rsvp is not None
+    can_see_address = event.address_visible_to_all or (user_rsvp is not None and user_rsvp.status == RSVP.Status.GOING)
     going_count = event.rsvps.filter(status=RSVP.Status.GOING).count()
+
+    pending_rsvps = None
+    if request.user == event.organizer and event.visibility == Event.Visibility.PRIVATE:
+        pending_rsvps = event.rsvps.filter(status=RSVP.Status.PENDING)
 
     return render(request, 'events/event_detail.html', {
         'event': event,
@@ -45,6 +50,7 @@ def event_detail(request, event_id):
         'can_see_address': can_see_address,
         'going_count': going_count,
         'is_saved': is_saved,
+        'pending_rsvps': pending_rsvps,
     })
 
 @login_required
@@ -55,7 +61,29 @@ def rsvp_toggle(request, event_id):
     if existing:
         existing.delete()
     else:
-        RSVP.objects.create(event=event, user=request.user, status=RSVP.Status.GOING)
+        is_private = event.visibility == Event.Visibility.PRIVATE and event.organizer != request.user
+        status = RSVP.Status.PENDING if is_private else RSVP.Status.GOING
+        RSVP.objects.create(event=event, user=request.user, status=status)
+
+    return redirect('event_detail', event_id=event.id)
+
+@login_required
+def rsvp_approve(request, event_id, rsvp_id):
+    event = get_object_or_404(Event, id=event_id)
+
+    if event.organizer != request.user:
+        return HttpResponseForbidden("Only the organizer can approve RSVPs.")
+
+    rsvp = get_object_or_404(RSVP, id=rsvp_id, event=event)
+    rsvp.status = RSVP.Status.GOING
+    rsvp.save()
+
+    Notification.objects.create(
+        recipient=rsvp.user,
+        notif_type=Notification.Type.EVENT_ACCEPTED,
+        message=f'Your RSVP for "{event.title}" was accepted',
+        link=f'/events/{event.id}/',
+    )
 
     return redirect('event_detail', event_id=event.id)
 

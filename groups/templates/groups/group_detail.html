@@ -139,7 +139,12 @@
         <input type="text" id="member-search" placeholder="Search members...">
         <ul id="member-popup-list">
             {% for m in members %}
-                <li class="member-popup-item">{{ m.user.username }}</li>
+                <li class="member-popup-item">
+                    {{ m.user.username }}
+                    {% if user.is_authenticated and m.user != user %}
+                        <a href="{% url 'conversation_detail' m.user.id %}" class="member-message-link">Message</a>
+                    {% endif %}
+                </li>
             {% endfor %}
         </ul>
     </div>

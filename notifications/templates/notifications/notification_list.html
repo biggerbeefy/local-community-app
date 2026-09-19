@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Notifications</h1>
+
+{% if notifications %}
+    <form method="post" action="{% url 'mark_all_notifications_read' %}" class="notif-mark-all-form">
+        {% csrf_token %}
+        <button type="submit" class="filter-btn">Mark all as read</button>
+    </form>
+
+    <div class="chat-list-page">
+        {% for notification in notifications %}
+            {% include 'notifications/_notification_item.html' %}
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="my-events-empty">No notifications yet.</p>
+{% endif %}
+{% endblock %}

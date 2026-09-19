@@ -1,0 +1,12 @@
+<a href="{% url 'conversation_detail' convo.partner.id %}" class="chat-panel-item">
+    {% if convo.partner.profile_picture %}
+        <img src="{{ convo.partner.profile_picture.url }}" alt="" class="chat-panel-avatar">
+    {% else %}
+        <div class="chat-panel-avatar chat-panel-avatar-placeholder">{{ convo.partner.username|first|upper }}</div>
+    {% endif %}
+    <div class="chat-panel-item-body">
+        <div class="chat-panel-item-name">{{ convo.partner.username }}</div>
+        <div class="chat-panel-item-snippet">{{ convo.last_message.body|truncatechars:40 }}</div>
+    </div>
+    {% if convo.unread_count %}<span class="chat-panel-unread-dot"></span>{% endif %}
+</a>

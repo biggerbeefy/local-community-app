@@ -26,18 +26,90 @@
             <button type="submit" aria-label="Search">🔍</button>
         </form>
 
-        {% if user.is_authenticated %}
-            <a href="{% url 'profile' %}" id="topbar-profile-pic">
-                {% if user.profile_picture %}
-                    <img src="{{ user.profile_picture.url }}" alt="Profile">
-                {% else %}
-                    <div id="topbar-profile-placeholder">{{ user.username|first|upper }}</div>
-                {% endif %}
-                <span id="topbar-profile-username">{{ user.username }}</span>
-            </a>
-        {% else %}
-            <a href="{% url 'login' %}?next={{ request.path }}" id="topbar-signin">Sign In</a>
-        {% endif %}
+        <div id="topbar-right">
+            {% if user.is_authenticated %}
+                <div class="chat-widget">
+                    <button id="chat-toggle" aria-label="Open chats">
+                        💬
+                        {% if chat_unread_count %}<span class="chat-badge">{{ chat_unread_count }}</span>{% endif %}
+                    </button>
+                    <div id="chat-panel" class="chat-panel">
+                        <div class="chat-panel-header">
+                            <h2>Chats</h2>
+                        </div>
+                        <form method="get" action="{% url 'start_conversation' %}" class="chat-compose-form">
+                            <input type="text" name="username" placeholder="Message someone by username" autocomplete="off">
+                            <button type="submit" class="chat-compose-icon-btn" aria-label="Start conversation">✏️</button>
+                        </form>
+                        {% if chat_conversations %}
+                            <div class="chat-panel-list">
+                                {% for convo in chat_conversations %}
+                                    {% include 'chat/_conversation_item.html' %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="chat-panel-empty">No messages yet.</p>
+                        {% endif %}
+                        <a href="{% url 'conversation_list' %}" class="chat-panel-see-all">See all messages</a>
+                    </div>
+                </div>
+
+                <div class="chat-widget">
+                    <button id="notif-toggle" aria-label="Open notifications">
+                        🔔
+                        {% if notif_unread_count %}<span class="chat-badge">{{ notif_unread_count }}</span>{% endif %}
+                    </button>
+                    <div id="notif-panel" class="chat-panel">
+                        <div class="chat-panel-header">
+                            <h2>Notifications</h2>
+                        </div>
+                        {% if notif_list %}
+                            <div class="chat-panel-list">
+                                {% for notification in notif_list %}
+                                    {% include 'notifications/_notification_item.html' %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="chat-panel-empty">No notifications yet.</p>
+                        {% endif %}
+                        <a href="{% url 'notification_list' %}" class="chat-panel-see-all">See all notifications</a>
+                    </div>
+                </div>
+
+                <div class="profile-menu">
+                    <button type="button" id="topbar-profile-pic" class="profile-menu-trigger" aria-haspopup="true">
+                        {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" alt="Profile">
+                        {% else %}
+                            <div id="topbar-profile-placeholder">{{ user.username|first|upper }}</div>
+                        {% endif %}
+                        <span id="topbar-profile-username">{{ user.username }}</span>
+                    </button>
+
+                    <div id="profile-menu-dropdown" class="profile-menu-dropdown">
+                        <div class="profile-menu-dropdown-inner">
+                            <a href="{% url 'profile' %}" class="profile-menu-item">
+                                <span class="profile-menu-icon">👤</span> Account
+                            </a>
+                            <a href="{% url 'profile_edit' %}" class="profile-menu-item">
+                                <span class="profile-menu-icon">⚙️</span> Settings &amp; privacy
+                            </a>
+                            <button type="button" id="display-mode-toggle" class="profile-menu-item">
+                                <span class="profile-menu-icon">🌓</span> Display Mode
+                            </button>
+                            <form method="post" action="{% url 'logout' %}" class="profile-menu-item-form">
+                                {% csrf_token %}
+                                <button type="submit" class="profile-menu-item">
+                                    <span class="profile-menu-icon">🚪</span> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{% url 'login' %}?next={{ request.path }}" id="topbar-signin">Sign In</a>
+            {% endif %}
+        </div>
     </header>
 
     <div id="sidebar-overlay"></div>
@@ -48,7 +120,7 @@
             {% if user.is_authenticated %}
                 <a href="{% url 'my_events' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">🎟️</span><span class="sidebar-nav-label">My Events</span></a>
             {% endif %}
-            <a href="{% url 'group_list' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">👥</span><span class="sidebar-nav-label">Communities</span></a>
+            <a href="{% url 'group_list' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">👥</span><span class="sidebar-nav-label">Groups</span></a>
             <a href="{% url 'profile' %}" class="sidebar-nav-link"><span class="sidebar-nav-icon">👤</span><span class="sidebar-nav-label">Account</span></a>
             {% if user.is_authenticated %}
                 <form method="post" action="{% url 'logout' %}">
@@ -65,6 +137,13 @@
     {% endblock %}
 
     <div class="{% block content_class %}content{% endblock %}">
+    {% if messages %}
+        <ul class="flash-messages">
+            {% for message in messages %}
+                <li class="flash-message flash-message-{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
     {% block content %}
     {% endblock %}
 </div>
@@ -86,6 +165,74 @@
             });
 
             overlay.addEventListener('click', closeSidebar);
+        }
+
+        const chatToggle = document.getElementById('chat-toggle');
+        const chatPanel = document.getElementById('chat-panel');
+
+        if (chatToggle && chatPanel) {
+            chatToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                chatPanel.classList.toggle('open');
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!chatPanel.contains(event.target) && event.target !== chatToggle) {
+                    chatPanel.classList.remove('open');
+                }
+            });
+        }
+
+        const notifToggle = document.getElementById('notif-toggle');
+        const notifPanel = document.getElementById('notif-panel');
+
+        if (notifToggle && notifPanel) {
+            notifToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                notifPanel.classList.toggle('open');
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!notifPanel.contains(event.target) && event.target !== notifToggle) {
+                    notifPanel.classList.remove('open');
+                }
+            });
+        }
+
+        const profileTrigger = document.getElementById('topbar-profile-pic');
+        const profileDropdown = document.getElementById('profile-menu-dropdown');
+
+        if (profileTrigger && profileDropdown) {
+            profileTrigger.addEventListener('click', (event) => {
+                event.stopPropagation();
+                profileDropdown.classList.toggle('open');
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!profileDropdown.contains(event.target) && event.target !== profileTrigger) {
+                    profileDropdown.classList.remove('open');
+                }
+            });
+        }
+
+        const displayModeToggle = document.getElementById('display-mode-toggle');
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        try {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) { applyTheme(savedTheme); }
+        } catch (e) {}
+
+        if (displayModeToggle) {
+            displayModeToggle.addEventListener('click', () => {
+                const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                applyTheme(next);
+                try { localStorage.setItem('theme', next); } catch (e) {}
+            });
         }
     </script>
 </body>
